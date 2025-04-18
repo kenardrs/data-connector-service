@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-customerdb
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: customerdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  data-connector-service:
+    image: quarkus/data-connector-service:1.0.0
+    build:
+      context: .
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: data-connector-service
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/customerdb
+      DB_USERNAME: postgres
+      DB_PASSWORD: example
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
